@@ -3,12 +3,9 @@
 // primitive is already present, and shells out to `npx shadcn@latest add` for
 // any that aren't.
 
-import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
 
 // Names already verified during this process — keeps repeated transforms cheap.
 const seen = new Set<string>();
@@ -43,12 +40,36 @@ export async function installMissingShadcn(
     return;
   }
   log(`md-computer: installing shadcn components: ${missing.join(", ")}`);
-  await execFileAsync("npx", ["shadcn@latest", "add", "--yes", ...missing], {
-    cwd: opts.cwd,
-  });
+  await runShadcnAdd(missing, opts.cwd);
   for (const name of missing) {
     seen.add(name);
   }
+}
+
+// `spawn` with inherited stdio so the user sees progress and shadcn's own
+// internal child process (npm install of Radix deps) gets a real TTY-ish
+// environment. `execFile` swallows stdout/stderr and broke shadcn's nested
+// install reliably, so we never want to use it here.
+function runShadcnAdd(components: string[], cwd: string): Promise<void> {
+  return new Promise<void>((res, rej) => {
+    const child = spawn(
+      "npx",
+      ["shadcn@latest", "add", "--yes", ...components],
+      { cwd, stdio: "inherit" }
+    );
+    child.on("error", rej);
+    child.on("close", (code) => {
+      if (code === 0) {
+        res();
+        return;
+      }
+      rej(
+        new Error(
+          `npx shadcn@latest add exited with code ${code} (components: ${components.join(", ")})`
+        )
+      );
+    });
+  });
 }
 
 function isInstalled(cwd: string, name: string): boolean {
