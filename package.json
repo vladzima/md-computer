@@ -1,0 +1,78 @@
+{
+  "name": "markdown-computer",
+  "version": "0.1.0",
+  "description": "A Markdown-native UI DSL that compiles to React + shadcn/ui",
+  "keywords": [
+    "markdown",
+    "ui",
+    "dsl",
+    "react",
+    "shadcn",
+    "codegen",
+    "vite-plugin"
+  ],
+  "homepage": "https://github.com/vladzima/markdown-computer#readme",
+  "bugs": {
+    "url": "https://github.com/vladzima/markdown-computer/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vladzima/markdown-computer.git"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "md-ui": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "import": "./dist/vite.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "check": "ultracite check",
+    "dev": "tsup --watch",
+    "fix": "ultracite fix",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cac": "^7.0.0",
+    "yaml": "^2.8.4"
+  },
+  "peerDependencies": {
+    "vite": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.14",
+    "@types/node": "^22.7.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.0",
+    "ultracite": "7.6.5",
+    "vite": "^8.0.11",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "author": "Vlad Arbatov <vlad@arbatov.dev>"
+}
