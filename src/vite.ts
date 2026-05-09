@@ -12,7 +12,7 @@
 //   the in-memory transform output get pruned and silently fail to render.
 //   Users add `@source "../.md-computer/**/*.tsx";` to their CSS.
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { type Plugin, transformWithEsbuild } from "vite";
 import { compile, deriveComponentName } from "./compile";
@@ -23,6 +23,14 @@ const MD_EXT = ".md";
 const CACHE_DIR_NAME = ".md-computer";
 const PATH_SEPARATOR_RE = /[/\\]/g;
 const MD_EXT_RE = /\.md$/i;
+const SKIP_DIRS = new Set(["node_modules", "dist", "build", ".git", ".next"]);
+const SKIP_FILENAMES = new Set([
+  "README.md",
+  "CHANGELOG.md",
+  "LICENSE.md",
+  "CONTRIBUTING.md",
+  "CODE_OF_CONDUCT.md",
+]);
 
 export interface MdComputerPluginOptions {
   // Module specifier the generated code uses for the actions sibling.
@@ -51,8 +59,33 @@ export default function mdComputer(opts: MdComputerPluginOptions = {}): Plugin {
     enforce: "pre",
     configResolved(config) {
       projectRoot = config.root;
-      if (cacheEnabled) {
-        mkdirSync(join(projectRoot, cacheDirName), { recursive: true });
+      if (!cacheEnabled) {
+        return;
+      }
+      const cacheDir = join(projectRoot, cacheDirName);
+      mkdirSync(cacheDir, { recursive: true });
+      // Pre-warm: compile every .md in the project so the cache files exist
+      // BEFORE Tailwind's source scanner runs. Without this, classes only
+      // surface on subsequent rebuilds.
+      for (const mdPath of findMdFiles(projectRoot, cacheDirName)) {
+        try {
+          const code = readFileSync(mdPath, "utf8");
+          const componentName = deriveComponentName(mdPath);
+          const actionsModulePath =
+            opts.actionsModulePath?.(mdPath) ??
+            `./${baseName(mdPath, MD_EXT)}.actions`;
+          const result = compile({
+            source: code,
+            componentName,
+            registry: opts.registry,
+            actionsModulePath,
+          });
+          cacheGeneratedTsx(projectRoot, cacheDirName, mdPath, result.tsx);
+        } catch {
+          // Skip files that fail to compile (e.g. README.md that isn't a
+          // page). The regular transform will surface real errors when the
+          // file is actually imported.
+        }
       }
     },
     async transform(code, id) {
@@ -124,4 +157,42 @@ function baseName(p: string, ext: string): string {
   const slash = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
   const file = slash >= 0 ? p.slice(slash + 1) : p;
   return file.endsWith(ext) ? file.slice(0, -ext.length) : file;
+}
+
+// Walk `root` for .md files we should pre-compile. Skips node_modules / build
+// outputs / dotfiles / our own cache dir / well-known non-page READMEs.
+function findMdFiles(root: string, cacheDirName: string): string[] {
+  const out: string[] = [];
+  const stack = [root];
+  while (stack.length > 0) {
+    const dir = stack.pop();
+    if (!dir) {
+      continue;
+    }
+    let entries: import("node:fs").Dirent[];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const e of entries) {
+      const name = e.name;
+      const full = join(dir, name);
+      if (e.isDirectory()) {
+        if (
+          SKIP_DIRS.has(name) ||
+          name === cacheDirName ||
+          name.startsWith(".")
+        ) {
+          continue;
+        }
+        stack.push(full);
+        continue;
+      }
+      if (e.isFile() && name.endsWith(MD_EXT) && !SKIP_FILENAMES.has(name)) {
+        out.push(full);
+      }
+    }
+  }
+  return out;
 }

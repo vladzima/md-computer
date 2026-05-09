@@ -1,6 +1,6 @@
 {
   "name": "md-computer",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A Markdown-native UI DSL that compiles to React + shadcn/ui",
   "keywords": [
     "markdown",
