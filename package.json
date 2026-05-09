@@ -1,5 +1,5 @@
 {
-  "name": "markdown-computer",
+  "name": "md-computer",
   "version": "0.1.0",
   "description": "A Markdown-native UI DSL that compiles to React + shadcn/ui",
   "keywords": [
@@ -11,19 +11,19 @@
     "codegen",
     "vite-plugin"
   ],
-  "homepage": "https://github.com/vladzima/markdown-computer#readme",
+  "homepage": "https://github.com/vladzima/md-computer#readme",
   "bugs": {
-    "url": "https://github.com/vladzima/markdown-computer/issues"
+    "url": "https://github.com/vladzima/md-computer/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vladzima/markdown-computer.git"
+    "url": "git+https://github.com/vladzima/md-computer.git"
   },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "md-ui": "./dist/cli.js"
+    "md-computer": "./dist/cli.js"
   },
   "exports": {
     ".": {

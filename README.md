@@ -1,16 +1,16 @@
-# markdown-computer
+# md-computer
 
 A Markdown-native UI DSL that compiles to React + shadcn/ui.
 
 Write your UI like a product spec — describe layout, components, props, bindings, and actions in plain Markdown. Get type-safe shadcn/ui React out the other side.
 
-> **Status:** alpha. v1 covers the compile path (`.md` → `.tsx`); APIs may change.
+> **Status:** alpha. v0.1.0 covers the compile path (`.md` → `.tsx`); APIs may change.
 
 ## Install
 
 ```bash
-pnpm add -D markdown-computer
-# or: npm i -D markdown-computer
+pnpm add -D md-computer
+# or: npm i -D md-computer
 ```
 
 ## Example
@@ -46,10 +46,10 @@ Button variant="outline" action="openBillingPortal"
 Compile it:
 
 ```bash
-npx md-ui compile app/settings/page.md
+npx md-computer compile app/settings/page.md
 ```
 
-You get a typed React component (`page.tsx`) and a sibling `page.actions.ts` stub you fill in with your real handlers.
+You get a typed React component (`page.tsx`) and a sibling `page.actions.ts` stub you fill in with your real handlers. Any shadcn primitives the page references that aren't installed yet are added automatically via `npx shadcn add`.
 
 ## How it reads
 
@@ -64,9 +64,9 @@ You get a typed React component (`page.tsx`) and a sibling `page.actions.ts` stu
 ## CLI
 
 ```bash
-md-ui compile <input.md>           # writes <input>.tsx (and .actions.ts on first run)
-md-ui compile <input.md> --install-shadcn   # also runs `npx shadcn add` for missing primitives
-md-ui compile <input.md> --out path/to/Page.tsx
+md-computer compile <input.md>                     # writes <input>.tsx + .actions.ts; auto-installs missing shadcn primitives
+md-computer compile <input.md> --no-install-shadcn # skip the auto-install
+md-computer compile <input.md> --out Page.tsx      # custom output path
 ```
 
 ## Vite plugin
@@ -74,23 +74,23 @@ md-ui compile <input.md> --out path/to/Page.tsx
 ```ts
 // vite.config.ts
 import { defineConfig } from "vite";
-import markdownComputer from "markdown-computer/vite";
+import mdComputer from "md-computer/vite";
 
 export default defineConfig({
-  plugins: [markdownComputer()],
+  plugins: [mdComputer()],
 });
 ```
 
-`.md` imports are transformed into compiled React components with full HMR.
+Importing a `.md` file gives you the compiled React component as the default export. Missing shadcn primitives are installed on first transform; HMR works automatically.
 
-## Built-in components (v1)
+## Built-in components (v0.1)
 
 Layout: `@stack`, `@grid`, `@card`, `@form`, `@section`
 Form: `Input`, `Textarea`, `Switch`
 Action: `Button`
 Display: `Badge`, `Text`
 
-shadcn primitives are resolved from `@/components/ui/*` and (optionally) installed on demand via `npx shadcn add`.
+Requires `components.json` in your project root (run `npx shadcn@latest init` once if you don't have it).
 
 ## License
 

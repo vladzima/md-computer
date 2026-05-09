@@ -1,41 +1,41 @@
 #!/usr/bin/env node
-import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import cac from "cac";
 import { compile, deriveComponentName } from "./compile";
+import { installMissingShadcn } from "./install-shadcn";
 
 const MD_EXT_RE = /\.md$/i;
 
-const cli = cac("md-ui");
+const cli = cac("md-computer");
 
 cli
   .command("compile <input>", "Compile a .md file to a .tsx React component")
   .option("--out <path>", "Output .tsx path (defaults to sibling file)")
   .option("--actions-out <path>", "Output for the actions stub")
   .option(
-    "--install-shadcn",
-    "Run `npx shadcn add` for any shadcn components referenced but not yet installed",
-    { default: false }
+    "--no-install-shadcn",
+    "Skip auto-installing missing shadcn primitives (default: install them)"
   )
   .option("--cwd <path>", "Project root for shadcn install (default: cwd)")
   .action((input: string, opts: CompileOpts) => runCompile(input, opts));
 
 cli.help();
-cli.version("0.0.0");
+cli.version("0.1.0");
 cli.parse();
 
 interface CompileOpts {
   actionsOut?: string;
   cwd?: string;
+  // cac inverts boolean flags prefixed with `--no-` automatically; default true.
   installShadcn?: boolean;
   out?: string;
 }
 
-function runCompile(input: string, opts: CompileOpts): void {
+async function runCompile(input: string, opts: CompileOpts): Promise<void> {
   const inputPath = isAbsolute(input) ? input : resolve(input);
   if (!existsSync(inputPath)) {
-    process.stderr.write(`md-ui: input not found: ${inputPath}\n`);
+    process.stderr.write(`md-computer: input not found: ${inputPath}\n`);
     process.exit(1);
   }
   const source = readFileSync(inputPath, "utf8");
@@ -57,48 +57,29 @@ function runCompile(input: string, opts: CompileOpts): void {
 
   if (existsSync(actionsOutPath)) {
     process.stdout.write(
-      `md-ui: keeping existing ${rel(actionsOutPath)} (compiler never overwrites this file)\n`
+      `md-computer: keeping existing ${rel(actionsOutPath)} (compiler never overwrites this file)\n`
     );
   } else {
     ensureDir(actionsOutPath);
     writeFileSync(actionsOutPath, result.actionsStub, "utf8");
-    process.stdout.write(`md-ui: wrote ${rel(actionsOutPath)} (stub)\n`);
+    process.stdout.write(`md-computer: wrote ${rel(actionsOutPath)} (stub)\n`);
   }
 
-  process.stdout.write(`md-ui: wrote ${rel(outPath)}\n`);
+  process.stdout.write(`md-computer: wrote ${rel(outPath)}\n`);
 
-  if (opts.installShadcn && result.shadcnComponents.length > 0) {
-    installShadcnComponents(result.shadcnComponents, opts.cwd ?? process.cwd());
+  // JIT install missing shadcn primitives by default.
+  if (opts.installShadcn !== false && result.shadcnComponents.length > 0) {
+    try {
+      await installMissingShadcn({
+        components: result.shadcnComponents,
+        cwd: opts.cwd ?? process.cwd(),
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`${msg}\n`);
+      process.exit(1);
+    }
   }
-}
-
-function installShadcnComponents(components: string[], cwd: string): void {
-  const componentsJson = resolve(cwd, "components.json");
-  if (!existsSync(componentsJson)) {
-    process.stderr.write(
-      `md-ui: --install-shadcn requested but no components.json at ${cwd}; skipping install\n`
-    );
-    return;
-  }
-  const missing = components.filter((name) => {
-    const candidates = [
-      resolve(cwd, "components", "ui", `${name}.tsx`),
-      resolve(cwd, "components", "ui", `${name}.ts`),
-      resolve(cwd, "src", "components", "ui", `${name}.tsx`),
-      resolve(cwd, "src", "components", "ui", `${name}.ts`),
-    ];
-    return !candidates.some((p) => existsSync(p));
-  });
-  if (missing.length === 0) {
-    return;
-  }
-  process.stdout.write(
-    `md-ui: installing missing shadcn components: ${missing.join(", ")}\n`
-  );
-  execFileSync("npx", ["shadcn@latest", "add", ...missing], {
-    cwd,
-    stdio: "inherit",
-  });
 }
 
 function ensureDir(filePath: string): void {
