@@ -4,7 +4,7 @@ A Markdown-native UI DSL that compiles to React + shadcn/ui.
 
 Write your UI like a product spec — describe layout, components, props, bindings, and actions in plain Markdown. Get type-safe shadcn/ui React out the other side.
 
-> **Status:** alpha (v0.2). APIs may still change.
+> **Status:** alpha (v0.3). APIs may still change.
 
 ## Install
 
@@ -83,19 +83,21 @@ export default defineConfig({
 
 Importing a `.md` file gives you the compiled React component as the default export. Missing shadcn primitives are installed on first transform; HMR works automatically.
 
-### Important: Tailwind v4 safelist
+### Tailwind setup (one extra line)
 
-Tailwind v4 only generates classes it can find in source files. Because md-computer's plugin transforms `.md` → JSX in memory, the codegen-emitted classes (`p-8`, `shadow-lg`, `text-xl`, …) aren't on disk for Tailwind to discover and get pruned. Add the safelist to your Tailwind entry CSS so they're always generated:
+Each `.md` is compiled to a real `.tsx` file under `<projectRoot>/.md-computer/` so Tailwind's source scanner can discover the codegen-emitted classes (`p-8`, `shadow-lg`, `text-xl`, etc). You only need to point Tailwind at that dir:
 
 ```css
 @import "tailwindcss";
-@import "md-computer/safelist.css";
+@source "../.md-computer/**/*.tsx";
 ```
 
-If you also want `className="..."` strings written inside `.md` files to be picked up by Tailwind, add a glob source too:
+Add `.md-computer/` to your `.gitignore` — it's a build-time cache that's regenerated on every transform.
 
-```css
-@source "**/*.md";
+If you'd rather not have an on-disk cache, pass `cache: false` and add classes via `@source inline(...)` yourself:
+
+```ts
+mdComputer({ cache: false })
 ```
 
 ## Built-in components
