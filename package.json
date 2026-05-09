@@ -1,6 +1,6 @@
 {
   "name": "md-computer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A Markdown-native UI DSL that compiles to React + shadcn/ui",
   "keywords": [
     "markdown",
@@ -33,10 +33,12 @@
     "./vite": {
       "types": "./dist/vite.d.ts",
       "import": "./dist/vite.js"
-    }
+    },
+    "./safelist.css": "./safelist.css"
   },
   "files": [
     "dist",
+    "safelist.css",
     "README.md"
   ],
   "scripts": {

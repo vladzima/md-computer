@@ -83,6 +83,21 @@ export default defineConfig({
 
 Importing a `.md` file gives you the compiled React component as the default export. Missing shadcn primitives are installed on first transform; HMR works automatically.
 
+### Important: Tailwind v4 safelist
+
+Tailwind v4 only generates classes it can find in source files. Because md-computer's plugin transforms `.md` → JSX in memory, the codegen-emitted classes (`p-8`, `shadow-lg`, `text-xl`, …) aren't on disk for Tailwind to discover and get pruned. Add the safelist to your Tailwind entry CSS so they're always generated:
+
+```css
+@import "tailwindcss";
+@import "md-computer/safelist.css";
+```
+
+If you also want `className="..."` strings written inside `.md` files to be picked up by Tailwind, add a glob source too:
+
+```css
+@source "**/*.md";
+```
+
 ## Built-in components
 
 Layout: `@stack`, `@grid`, `@card`, `@form`, `@section`

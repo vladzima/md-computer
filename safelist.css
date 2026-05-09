@@ -1,0 +1,61 @@
+/*
+ * md-computer safelist
+ *
+ * Tailwind v4 generates only the classes it can discover in source files.
+ * md-computer's Vite plugin transforms .md → JSX in memory, so any class
+ * the codegen emits that doesn't *also* appear in a real .tsx source file
+ * gets pruned and silently doesn't render. This file forces Tailwind to
+ * generate every class the codegen can produce, regardless of whether the
+ * scanner sees it.
+ *
+ * Add it to your project's CSS:
+ *
+ *     @import "tailwindcss";
+ *     @import "md-computer/safelist.css";
+ *
+ * If you also want className="..." escape hatches inside .md files to be
+ * picked up, add a glob source for them:
+ *
+ *     @source "**\/*.md";
+ */
+
+/* @card padding=none|sm|md|lg|xl */
+@source inline("{p,px,py}-{0,2,4,6,8,12}");
+
+/* @card radius=none|sm|md|lg|xl|2xl|full */
+@source inline("rounded-{none,sm,md,lg,xl,2xl,full}");
+
+/* @card shadow=none|sm|md|lg|xl */
+@source inline("shadow-{none,sm,md,lg,xl}");
+
+/* @card variant=destructive */
+@source inline("border-destructive");
+
+/* @stack / @grid align */
+@source inline("items-{start,center,end,stretch,baseline}");
+
+/* @stack / @grid justify */
+@source inline("justify-{start,center,end,between,around,evenly}");
+
+/* @stack / @grid layout primitives */
+@source inline("flex flex-col flex-row grid");
+@source inline("gap-{0,1,2,3,4,5,6,7,8,10,12,16,20,24}");
+@source inline("grid-cols-{1,2,3,4,5,6,7,8,9,10,11,12}");
+
+/* Text size */
+@source inline("text-{xs,sm,base,lg,xl,2xl,3xl,4xl,5xl}");
+
+/* Text weight */
+@source inline("font-{normal,medium,semibold,bold}");
+
+/* Text alignment */
+@source inline("text-{left,center,right,justify}");
+
+/* Text tone */
+@source inline("text-muted-foreground");
+
+/* Button width=full|auto */
+@source inline("w-{full,auto}");
+
+/* Page + section headings emitted by the codegen */
+@source inline("text-3xl text-xl font-semibold");
