@@ -11,6 +11,9 @@ importers:
       cac:
         specifier: ^7.0.0
         version: 7.0.0
+      tailwind-merge:
+        specifier: ^3.5.0
+        version: 3.5.0
       yaml:
         specifier: ^2.8.4
         version: 2.8.4
@@ -913,6 +916,9 @@ packages:
     engines: {node: '>=16 || 14 >=14.17'}
     hasBin: true
 
+  tailwind-merge@3.5.0:
+    resolution: {integrity: sha512-I8K9wewnVDkL1NTGoqWmVEIlUcB9gFriAEkXkfCjX5ib8ezGxtR3xD7iZIxrfArjEsH7F1CHD4RFUtxefdqV/A==}
+
   thenify-all@1.6.0:
     resolution: {integrity: sha512-RNxQH/qI8/t3thXJDwcstUO4zeqo64+Uy/+sNVRBx4Xn2OX+OZ9oP+iJnNFqplFra2ZUVeKCSa2oVWi3T4uVmA==}
     engines: {node: '>=0.8'}
@@ -1783,6 +1789,8 @@ snapshots:
       pirates: 4.0.7
       tinyglobby: 0.2.16
       ts-interface-checker: 0.1.13
+
+  tailwind-merge@3.5.0: {}
 
   thenify-all@1.6.0:
     dependencies:

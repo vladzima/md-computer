@@ -1,6 +1,6 @@
 {
   "name": "md-computer",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A Markdown-native UI DSL that compiles to React + shadcn/ui",
   "keywords": [
     "markdown",
@@ -51,6 +51,7 @@
   },
   "dependencies": {
     "cac": "^7.0.0",
+    "tailwind-merge": "^3.5.0",
     "yaml": "^2.8.4"
   },
   "peerDependencies": {

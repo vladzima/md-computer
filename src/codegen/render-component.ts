@@ -1,6 +1,32 @@
 import type { ComponentNode, InlineNode, Props } from "../ast/types";
-import { addImport, type CodegenContext, useRegistryEntry } from "./context";
-import { indent, jsxAttrString, renderInline, renderProps } from "./jsx";
+import {
+  buildClassName,
+  classFromMap,
+  stringProp,
+  TEXT_ALIGN,
+  TEXT_SIZE,
+  TEXT_TONE,
+  TEXT_WEIGHT,
+  WIDTH,
+} from "./classes";
+import { type CodegenContext, useRegistryEntry } from "./context";
+import { classAttr, indent, jsxAttrString, renderInline, renderProps } from "./jsx";
+
+// Prop keys consumed by codegen (not emitted as JSX attributes on the
+// underlying element). Anything else passes through to the rendered tag.
+const COMMON_SKIP = new Set([
+  "className",
+  "label",
+  "tone",
+  "size",
+  "weight",
+  "align",
+  "width",
+  "padding",
+  "radius",
+  "shadow",
+  "justify",
+]);
 
 // Render a leaf component invocation (Input, Button, Badge, …) as JSX.
 // Each component has hand-written rendering rules — there is no general
@@ -26,9 +52,6 @@ export function renderComponent(
     case "Text":
       return renderText(node, ctx, level);
     default:
-      // Permissive fallback: emit `<Name {...props}>{children}</Name>` so
-      // unknown components still produce something compileable; the user
-      // (or v2) can tighten this with stricter validation.
       return renderGeneric(node, ctx, level);
   }
 }
@@ -40,18 +63,15 @@ function renderInput(
 ): string {
   const id = idFromProps(node.props);
   const label = stringProp(node.props, "label");
-  const inputAttrs = renderProps(
-    node.props,
-    new Set(["label"])
-  );
-  const labelLine =
-    label !== undefined
-      ? `${indent(level + 1)}<Label htmlFor=${jsxAttrString(id)}>${label}</Label>\n`
-      : "";
+  const inputCls = buildClassName(stringProp(node.props, "className"));
+  const inputAttrs = renderProps(node.props, skip());
+  const labelLine = label
+    ? `${indent(level + 1)}<Label htmlFor=${jsxAttrString(id)}>${label}</Label>\n`
+    : "";
   return [
     `${indent(level)}<div className="flex flex-col gap-2">\n`,
     labelLine,
-    `${indent(level + 1)}<Input id=${jsxAttrString(id)}${inputAttrs} />\n`,
+    `${indent(level + 1)}<Input id=${jsxAttrString(id)}${inputAttrs}${classAttr(inputCls)} />\n`,
     `${indent(level)}</div>`,
   ].join("");
 }
@@ -63,15 +83,15 @@ function renderTextarea(
 ): string {
   const id = idFromProps(node.props);
   const label = stringProp(node.props, "label");
-  const inputAttrs = renderProps(node.props, new Set(["label"]));
-  const labelLine =
-    label !== undefined
-      ? `${indent(level + 1)}<Label htmlFor=${jsxAttrString(id)}>${label}</Label>\n`
-      : "";
+  const inputCls = buildClassName(stringProp(node.props, "className"));
+  const inputAttrs = renderProps(node.props, skip());
+  const labelLine = label
+    ? `${indent(level + 1)}<Label htmlFor=${jsxAttrString(id)}>${label}</Label>\n`
+    : "";
   return [
     `${indent(level)}<div className="flex flex-col gap-2">\n`,
     labelLine,
-    `${indent(level + 1)}<Textarea id=${jsxAttrString(id)}${inputAttrs} />\n`,
+    `${indent(level + 1)}<Textarea id=${jsxAttrString(id)}${inputAttrs}${classAttr(inputCls)} />\n`,
     `${indent(level)}</div>`,
   ].join("");
 }
@@ -83,14 +103,14 @@ function renderSwitch(
 ): string {
   const id = idFromProps(node.props);
   const label = stringProp(node.props, "label");
-  const inputAttrs = renderProps(node.props, new Set(["label"]));
-  const labelLine =
-    label !== undefined
-      ? `${indent(level + 1)}<Label htmlFor=${jsxAttrString(id)}>${label}</Label>\n`
-      : "";
+  const inputCls = buildClassName(stringProp(node.props, "className"));
+  const inputAttrs = renderProps(node.props, skip());
+  const labelLine = label
+    ? `${indent(level + 1)}<Label htmlFor=${jsxAttrString(id)}>${label}</Label>\n`
+    : "";
   return [
     `${indent(level)}<div className="flex items-center gap-2">\n`,
-    `${indent(level + 1)}<Switch id=${jsxAttrString(id)}${inputAttrs} />\n`,
+    `${indent(level + 1)}<Switch id=${jsxAttrString(id)}${inputAttrs}${classAttr(inputCls)} />\n`,
     labelLine,
     `${indent(level)}</div>`,
   ].join("");
@@ -102,14 +122,17 @@ function renderButton(
   level: number
 ): string {
   const action = stringProp(node.props, "action");
-  const skip = new Set(["action"]);
-  const attrs = renderProps(node.props, skip);
-  const handler = action ? ` onClick={() => actions.${action}()}` : "";
   if (action) {
     ctx.actionsUsed.add(action);
   }
+  const cls = buildClassName(
+    classFromMap(node.props.width, WIDTH),
+    stringProp(node.props, "className")
+  );
+  const attrs = renderProps(node.props, skip("action"));
+  const handler = action ? ` onClick={() => actions.${action}()}` : "";
   const childText = renderInline(node.children);
-  return `${indent(level)}<Button${attrs}${handler}>${childText}</Button>`;
+  return `${indent(level)}<Button${attrs}${classAttr(cls)}${handler}>${childText}</Button>`;
 }
 
 function renderBadge(
@@ -117,9 +140,10 @@ function renderBadge(
   _ctx: CodegenContext,
   level: number
 ): string {
-  const attrs = renderProps(node.props);
+  const cls = buildClassName(stringProp(node.props, "className"));
+  const attrs = renderProps(node.props, skip());
   const childText = renderInline(node.children);
-  return `${indent(level)}<Badge${attrs}>${childText}</Badge>`;
+  return `${indent(level)}<Badge${attrs}${classAttr(cls)}>${childText}</Badge>`;
 }
 
 function renderText(
@@ -127,10 +151,15 @@ function renderText(
   ctx: CodegenContext,
   level: number
 ): string {
-  const tone = stringProp(node.props, "tone");
-  const cls = tone === "muted" ? ' className="text-muted-foreground"' : "";
+  const cls = buildClassName(
+    classFromMap(node.props.tone, TEXT_TONE),
+    classFromMap(node.props.size, TEXT_SIZE),
+    classFromMap(node.props.weight, TEXT_WEIGHT),
+    classFromMap(node.props.align, TEXT_ALIGN),
+    stringProp(node.props, "className")
+  );
   const childText = renderInlineWithTracking(node.children, ctx);
-  return `${indent(level)}<p${cls}>${childText}</p>`;
+  return `${indent(level)}<p${classAttr(cls)}>${childText}</p>`;
 }
 
 function renderGeneric(
@@ -138,12 +167,13 @@ function renderGeneric(
   ctx: CodegenContext,
   level: number
 ): string {
-  const attrs = renderProps(node.props);
+  const cls = buildClassName(stringProp(node.props, "className"));
+  const attrs = renderProps(node.props, skip());
   const childText = renderInlineWithTracking(node.children, ctx);
   if (childText.length === 0) {
-    return `${indent(level)}<${node.name}${attrs} />`;
+    return `${indent(level)}<${node.name}${attrs}${classAttr(cls)} />`;
   }
-  return `${indent(level)}<${node.name}${attrs}>${childText}</${node.name}>`;
+  return `${indent(level)}<${node.name}${attrs}${classAttr(cls)}>${childText}</${node.name}>`;
 }
 
 function renderInlineWithTracking(
@@ -175,7 +205,12 @@ function idFromProps(props: Props): string {
   return "field";
 }
 
-function stringProp(props: Props, key: string): string | undefined {
-  const v = props[key];
-  return typeof v === "string" ? v : undefined;
+// Build a per-render skip set: the common style-prop names plus any extras
+// the caller wants to omit (e.g. Button's `action`).
+function skip(...extra: string[]): Set<string> {
+  const out = new Set(COMMON_SKIP);
+  for (const e of extra) {
+    out.add(e);
+  }
+  return out;
 }

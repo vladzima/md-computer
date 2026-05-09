@@ -17,6 +17,13 @@ export function jsxAttrString(s: string): string {
   return `"${s.replace(/"/g, "&quot;")}"`;
 }
 
+// Render a className attribute, or empty string when the class set is empty.
+// Used by directive/component renderers after assembling classes via
+// `buildClassName`.
+export function classAttr(s: string): string {
+  return s.length > 0 ? ` className=${jsxAttrString(s)}` : "";
+}
+
 // Render an inline sequence (text + bindings) into a JSX-children expression.
 // Text nodes become literal text; bindings become `{bindings.path}`.
 // Adjacent text nodes are concatenated.
